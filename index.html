@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>South House — Build Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sand: #F5F0E8;
+  --sand-dark: #E8E0D0;
+  --ink: #1C1A16;
+  --ink-soft: #5C5850;
+  --ink-faint: #9C9890;
+  --accent: #C17D3C;
+  --accent-light: #F0E4D0;
+  --green: #3B6D11;
+  --green-light: #EAF3DE;
+  --blue: #185FA5;
+  --blue-light: #E6F1FB;
+  --red: #A32D2D;
+  --red-light: #FCEBEB;
+  --gray-light: #F1EFE8;
+  --border: rgba(28,26,22,0.12);
+  --radius: 12px;
+  --serif: 'DM Serif Display', Georgia, serif;
+  --sans: 'DM Sans', system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--sans);
+  background: var(--sand);
+  color: var(--ink);
+  min-height: 100vh;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Header */
+header {
+  background: var(--ink);
+  color: var(--sand);
+  padding: 2rem 2.5rem 1.75rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.header-left h1 {
+  font-family: var(--serif);
+  font-size: 2rem;
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+.header-left p {
+  font-size: 13px;
+  color: rgba(245,240,232,0.55);
+  margin-top: 4px;
+  font-weight: 300;
+}
+.sync-info {
+  text-align: right;
+  font-size: 12px;
+  color: rgba(245,240,232,0.45);
+  font-weight: 300;
+}
+.sync-info span { color: rgba(245,240,232,0.7); }
+.refresh-btn {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 5px 14px;
+  border: 1px solid rgba(245,240,232,0.2);
+  border-radius: 20px;
+  font-size: 12px;
+  color: rgba(245,240,232,0.6);
+  cursor: pointer;
+  background: none;
+  font-family: var(--sans);
+  transition: all .2s;
+}
+.refresh-btn:hover { border-color: rgba(245,240,232,0.5); color: var(--sand); }
+
+/* Config bar (hidden after connect) */
+.config-bar {
+  background: var(--accent-light);
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 2.5rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.config-bar input {
+  flex: 1;
+  max-width: 500px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: var(--sans);
+  background: white;
+}
+.config-bar button {
+  padding: 6px 16px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+.config-bar label { color: var(--ink-soft); font-weight: 500; }
+.conn-ok { color: var(--green); font-weight: 500; }
+.conn-err { color: var(--red); font-weight: 500; }
+
+/* Main layout */
+main { padding: 2rem 2.5rem; max-width: 1100px; margin: 0 auto; }
+
+/* Lookahead banner */
+.lookahead {
+  background: var(--ink);
+  color: var(--sand);
+  border-radius: var(--radius);
+  padding: 1.5rem 2rem;
+  margin-bottom: 2rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+.lookahead-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--accent);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.lookahead h2 {
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  font-weight: 400;
+  margin-bottom: 4px;
+}
+.lookahead-date {
+  font-size: 12px;
+  color: rgba(245,240,232,0.5);
+  margin-bottom: 12px;
+}
+.crew-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.crew-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(245,240,232,0.1);
+  border: 1px solid rgba(245,240,232,0.15);
+  border-radius: 20px;
+  padding: 5px 12px 5px 8px;
+  font-size: 13px;
+}
+.crew-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.lookahead-note {
+  margin-top: 12px;
+  font-size: 13px;
+  color: rgba(245,240,232,0.55);
+  font-style: italic;
+}
+.lookahead-none {
+  font-size: 14px;
+  color: rgba(245,240,232,0.5);
+  font-style: italic;
+  margin-top: 4px;
+}
+
+/* Section heading */
+.section-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 1rem;
+}
+.section-heading h2 {
+  font-family: var(--serif);
+  font-size: 1.35rem;
+  font-weight: 400;
+}
+.section-heading span {
+  font-size: 12px;
+  color: var(--ink-faint);
+  font-weight: 300;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+/* Metrics row */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 10px;
+  margin-bottom: 2rem;
+}
+.metric {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+}
+.metric-label { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; font-weight: 500; }
+.metric-value { font-size: 24px; font-weight: 300; font-family: var(--serif); }
+.metric-value.ok { color: var(--green); }
+.metric-value.warn { color: var(--accent); }
+.metric-value.over { color: var(--red); }
+
+/* Gantt */
+.gantt-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+.gtable { width: 100%; border-collapse: collapse; }
+.gtable th {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding: 10px 14px;
+  background: var(--gray-light);
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.gtable td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  vertical-align: middle;
+}
+.gtable tr:last-child td { border-bottom: none; }
+.gtable tr.this-week td { background: #FFFBF5; }
+.gtable tr.this-week td:first-child {
+  border-left: 3px solid var(--accent);
+  padding-left: 11px;
+}
+.badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.s-done { background: var(--green-light); color: var(--green); }
+.s-active { background: var(--blue-light); color: var(--blue); }
+.s-pending { background: var(--gray-light); color: var(--ink-soft); }
+.s-delayed { background: var(--red-light); color: var(--red); }
+.s-upcoming { background: var(--accent-light); color: var(--accent); border: 1px solid rgba(193,125,60,0.2); }
+
+/* Gantt bars */
+.bar-wrap { position: relative; height: 16px; border-radius: 4px; background: var(--gray-light); overflow: visible; }
+.bar-bg { position: absolute; top: 0; height: 100%; border-radius: 4px; opacity: .18; }
+.bar-fg { position: absolute; top: 0; height: 100%; border-radius: 4px; }
+.bar-pct { position: absolute; right: 4px; top: 0; font-size: 10px; color: var(--ink-faint); line-height: 16px; white-space: nowrap; }
+
+/* Budget */
+.budget-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2rem;
+}
+.brow { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.brow:last-child { margin-bottom: 0; }
+.brow-label { font-size: 13px; color: var(--ink); flex: 0 0 170px; }
+.brow-track { flex: 1; height: 7px; background: var(--gray-light); border-radius: 4px; position: relative; overflow: hidden; }
+.brow-fill { height: 100%; border-radius: 4px; position: absolute; left: 0; top: 0; }
+.brow-nums { font-size: 12px; color: var(--ink-faint); flex: 0 0 160px; text-align: right; }
+.brow-nums strong { color: var(--ink); font-weight: 500; }
+.divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+/* Legend */
+.legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.leg { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-soft); }
+.leg-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 2rem;
+  font-size: 12px;
+  color: var(--ink-faint);
+  border-top: 1px solid var(--border);
+  margin-top: 1rem;
+}
+
+/* Empty / loading */
+.empty { padding: 2rem; text-align: center; color: var(--ink-faint); font-size: 14px; }
+.loading { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--ink-soft); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 680px) {
+  header { flex-direction: column; align-items: flex-start; padding: 1.5rem; }
+  main { padding: 1.25rem; }
+  .metrics { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .lookahead { grid-template-columns: 1fr; }
+  .brow-label { flex: 0 0 120px; font-size: 12px; }
+  .brow-nums { flex: 0 0 120px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>South House</h1>
+    <p>Build progress dashboard &mdash; read-only view</p>
+  </div>
+  <div class="sync-info">
+    <div>Last updated <span id="last-sync">—</span></div>
+    <button class="refresh-btn" onclick="loadAll()">&#8635; Refresh</button>
+  </div>
+</header>
+
+<div class="config-bar" id="config-bar">
+  <label>Script URL</label>
+  <input id="script-url" placeholder="Paste your Google Apps Script web app URL..." />
+  <button onclick="connect()">Connect</button>
+  <span id="conn-status"></span>
+</div>
+
+<main>
+
+  <!-- LOOKAHEAD BANNER -->
+  <div class="lookahead" id="lookahead-panel">
+    <div class="lookahead-icon">&#128197;</div>
+    <div>
+      <h2 id="lookahead-title">This week on site</h2>
+      <div class="lookahead-date" id="lookahead-date"></div>
+      <div class="crew-grid" id="crew-grid">
+        <span class="lookahead-none">Connect to load schedule data</span>
+      </div>
+      <div class="lookahead-note" id="lookahead-note"></div>
+    </div>
+  </div>
+
+  <!-- SCHEDULE -->
+  <div class="section-heading">
+    <h2>Schedule</h2>
+    <span>Phase by phase</span>
+  </div>
+  <div class="metrics" id="sched-metrics">
+    <div class="metric"><div class="metric-label">Phases</div><div class="metric-value">—</div></div>
+    <div class="metric"><div class="metric-label">Complete</div><div class="metric-value">—</div></div>
+    <div class="metric"><div class="metric-label">In progress</div><div class="metric-value">—</div></div>
+    <div class="metric"><div class="metric-label">Delayed</div><div class="metric-value">—</div></div>
+  </div>
+  <div class="legend">
+    <div class="leg"><div class="leg-dot" style="background:#639922"></div>Complete</div>
+    <div class="leg"><div class="leg-dot" style="background:#378ADD"></div>In progress</div>
+    <div class="leg"><div class="leg-dot" style="background:#C17D3C"></div>Up next</div>
+    <div class="leg"><div class="leg-dot" style="background:#888780"></div>Pending</div>
+    <div class="leg"><div class="leg-dot" style="background:#E24B4A"></div>Delayed</div>
+    <div class="leg" style="border-left:3px solid #C17D3C;padding-left:6px;">Happening this week</div>
+  </div>
+  <div class="gantt-card">
+    <table class="gtable">
+      <thead><tr>
+        <th style="width:160px">Phase</th>
+        <th style="width:100px">Status</th>
+        <th style="width:130px">Who's on site</th>
+        <th style="width:75px">Start</th>
+        <th style="width:75px">End</th>
+        <th>Progress (24 weeks)</th>
+      </tr></thead>
+      <tbody id="gantt-body">
+        <tr><td colspan="6" class="empty">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- BUDGET -->
+  <div class="section-heading">
+    <h2>Budget</h2>
+    <span>Spent vs. planned</span>
+  </div>
+  <div class="metrics" id="budget-metrics">
+    <div class="metric"><div class="metric-label">Total budget</div><div class="metric-value">—</div></div>
+    <div class="metric"><div class="metric-label">Spent to date</div><div class="metric-value">—</div></div>
+    <div class="metric"><div class="metric-label">Remaining</div><div class="metric-value">—</div></div>
+    <div class="metric"><div class="metric-label">Change orders</div><div class="metric-value">—</div></div>
+  </div>
+  <div class="budget-card" id="budget-rows">
+    <div class="empty">—</div>
+  </div>
+
+</main>
+
+<footer>South House build tracker &mdash; view only &mdash; data from Google Sheets</footer>
+
+<script>
+const TW = 24;
+const SC = { done:'#639922', active:'#378ADD', pending:'#888780', delayed:'#E24B4A', upcoming:'#C17D3C' };
+const SL = { done:'Complete', active:'In progress', pending:'Pending', delayed:'Delayed', upcoming:'Up next' };
+const SK = { done:'s-done', active:'s-active', pending:'s-pending', delayed:'s-delayed', upcoming:'s-upcoming' };
+
+// Crew mapping — keys match phase names in the sheet (case-insensitive)
+// You can edit these to match your real contractors
+const CREW = {
+  'site prep':     [{ name:'Excavation crew',  color:'#C17D3C' }, { name:'Surveyor',        color:'#888780' }],
+  'foundation':    [{ name:'Concrete crew',    color:'#378ADD' }, { name:'Inspector',        color:'#888780' }],
+  'framing':       [{ name:'Framing crew',     color:'#185FA5' }, { name:'Structural eng.',  color:'#888780' }],
+  'roofing':       [{ name:'Roofing crew',     color:'#C17D3C' }],
+  'rough-ins':     [{ name:'Electrician',      color:'#639922' }, { name:'Plumber',          color:'#378ADD' }, { name:'HVAC tech',        color:'#185FA5' }],
+  'insulation':    [{ name:'Insulation crew',  color:'#C17D3C' }],
+  'drywall':       [{ name:'Drywall crew',     color:'#378ADD' }],
+  'finishes':      [{ name:'Finish carpenter', color:'#639922' }, { name:'Painter',          color:'#C17D3C' }, { name:'Tile setter',      color:'#185FA5' }],
+  'landscaping':   [{ name:'Landscape crew',   color:'#3B6D11' }],
+};
+
+let SCRIPT_URL = localStorage.getItem('south_house_url') || '';
+let DATA = { phases: [], budget: [], changes: [] };
+
+function fmt(n) { return '$' + Math.round(n).toLocaleString(); }
+function pct(s, b) { return b === 0 ? 0 : Math.min(100, Math.round(s / b * 100)); }
+
+function getLookaheadWeek() {
+  // Returns a synthetic "current week" based on active/delayed phases
+  // In production this would be based on project start date + today's date
+  const active = DATA.phases.filter(p => {
+    const s = (p.status||'').toLowerCase().replace(/\s/g,'');
+    return s === 'active' || s === 'inprogress';
+  });
+  if (active.length) return { week: parseFloat(active[0].start) || 1, phases: active };
+  return { week: 1, phases: [] };
+}
+
+function renderLookahead() {
+  const { phases } = getLookaheadWeek();
+  const dateEl = document.getElementById('lookahead-date');
+  const grid = document.getElementById('crew-grid');
+  const note = document.getElementById('lookahead-note');
+  const title = document.getElementById('lookahead-title');
+
+  const now = new Date();
+  const weekStr = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  dateEl.textContent = 'Week of ' + weekStr;
+
+  if (!phases.length) {
+    grid.innerHTML = '<span class="lookahead-none">No active phases this week</span>';
+    note.textContent = '';
+    return;
+  }
+
+  const activeCrew = [];
+  const phaseNames = [];
+  phases.forEach(p => {
+    phaseNames.push(p.name);
+    // Check sheet for crew field first, fallback to CREW map
+    if (p.crew && p.crew.trim()) {
+      p.crew.split(',').forEach(c => {
+        const name = c.trim();
+        if (name) activeCrew.push({ name, color: '#C17D3C' });
+      });
+    } else {
+      const key = (p.name||'').toLowerCase().trim();
+      const mapped = Object.keys(CREW).find(k => key.includes(k));
+      if (mapped) CREW[mapped].forEach(c => activeCrew.push(c));
+    }
+  });
+
+  // Deduplicate
+  const seen = new Set();
+  const unique = activeCrew.filter(c => { if (seen.has(c.name)) return false; seen.add(c.name); return true; });
+
+  if (!unique.length) {
+    grid.innerHTML = '<span class="lookahead-none">No crew info available — add a "crew" column to your Schedule sheet</span>';
+  } else {
+    grid.innerHTML = unique.map(c =>
+      `<div class="crew-chip"><div class="crew-dot" style="background:${c.color}"></div>${c.name}</div>`
+    ).join('');
+  }
+
+  // Delayed warning
+  const delayed = DATA.phases.filter(p => (p.status||'').toLowerCase() === 'delayed');
+  if (delayed.length) {
+    note.textContent = 'Note: ' + delayed.map(d => d.name).join(', ') + (delayed.length === 1 ? ' is' : ' are') + ' currently delayed — confirm schedule with your contractor.';
+  } else {
+    note.textContent = 'Active: ' + phaseNames.join(' + ');
+  }
+}
+
+function renderSchedule() {
+  const P = DATA.phases || [];
+  const active = DATA.phases || [];
+  const activeNames = new Set(
+    DATA.phases.filter(p => ['active','inprogress','in progress'].includes((p.status||'').toLowerCase().replace(/\s/g,''))).map(p => p.name)
+  );
+
+  // Find "up next" — first pending after last active
+  let foundActive = false;
+  let upNextName = null;
+  for (const p of P) {
+    const s = (p.status||'').toLowerCase().replace(/\s/g,'');
+    if (s === 'active' || s === 'inprogress') foundActive = true;
+    else if (foundActive && (s === 'pending' || s === '')) { upNextName = p.name; break; }
+  }
+
+  const done = P.filter(p => (p.status||'').toLowerCase() === 'done').length;
+  const delayed = P.filter(p => (p.status||'').toLowerCase() === 'delayed').length;
+  const inprog = P.filter(p => ['active','in progress'].includes((p.status||'').toLowerCase())).length;
+
+  document.getElementById('sched-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">Phases</div><div class="metric-value">${P.length}</div></div>
+    <div class="metric"><div class="metric-label">Complete</div><div class="metric-value ok">${done}</div></div>
+    <div class="metric"><div class="metric-label">In progress</div><div class="metric-value">${inprog}</div></div>
+    <div class="metric"><div class="metric-label">Delayed</div><div class="metric-value ${delayed > 0 ? 'over' : ''}">${delayed}</div></div>`;
+
+  const tbody = document.getElementById('gantt-body');
+  if (!P.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No phases found</td></tr>'; return; }
+
+  tbody.innerHTML = P.map(p => {
+    const rawStatus = (p.status || 'pending').toLowerCase().replace(/\s/g, '');
+    let st = rawStatus;
+    if (p.name === upNextName) st = 'upcoming';
+    const col = SC[st] || SC.pending;
+    const s = parseFloat(p.start) || 1;
+    const e = parseFloat(p.end) || 2;
+    const pc = parseFloat(p.pct) || 0;
+    const bL = Math.round((s - 1) / TW * 100);
+    const bW = Math.max(1, Math.round((e - s) / TW * 100));
+    const bF = Math.round(bW * pc / 100);
+    const isActive = activeNames.has(p.name);
+
+    // Crew display
+    let crewDisplay = '—';
+    if (p.crew && p.crew.trim()) {
+      crewDisplay = p.crew;
+    } else {
+      const key = (p.name||'').toLowerCase().trim();
+      const mapped = Object.keys(CREW).find(k => key.includes(k));
+      if (mapped) crewDisplay = CREW[mapped].map(c => c.name).join(', ');
+    }
+
+    return `<tr class="${isActive ? 'this-week' : ''}">
+      <td style="font-weight:500">${p.name}</td>
+      <td><span class="badge ${SK[st] || 's-pending'}">${SL[st] || p.status}</span></td>
+      <td style="font-size:12px;color:var(--ink-soft)">${crewDisplay}</td>
+      <td style="color:var(--ink-faint)">Wk ${p.start}</td>
+      <td style="color:var(--ink-faint)">Wk ${p.end}</td>
+      <td style="padding:9px 14px">
+        <div class="bar-wrap">
+          <div class="bar-bg" style="left:${bL}%;width:${bW}%;background:${col}"></div>
+          <div class="bar-fg" style="left:${bL}%;width:${bF}%;background:${col}"></div>
+          <span class="bar-pct">${pc}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderBudget() {
+  const B = DATA.budget || [];
+  const C = DATA.changes || [];
+  const totalB = B.reduce((a, r) => a + (parseFloat(r.budget) || 0), 0);
+  const totalS = B.reduce((a, r) => a + (parseFloat(r.spent) || 0), 0);
+  const cc = C.reduce((a, c) => a + (parseFloat(c.cost) || 0), 0);
+  const remaining = totalB - totalS;
+
+  document.getElementById('budget-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">Total budget</div><div class="metric-value">${fmt(totalB)}</div></div>
+    <div class="metric"><div class="metric-label">Spent to date</div><div class="metric-value ${totalS > totalB ? 'over' : 'ok'}">${fmt(totalS)}</div></div>
+    <div class="metric"><div class="metric-label">Remaining</div><div class="metric-value">${fmt(remaining)}</div></div>
+    <div class="metric"><div class="metric-label">Change orders</div><div class="metric-value ${cc > 0 ? 'warn' : 'ok'}">${cc >= 0 ? '+' : ''}${fmt(cc)}</div></div>`;
+
+  if (!B.length) { document.getElementById('budget-rows').innerHTML = '<div class="empty">No budget data</div>'; return; }
+  const maxB = Math.max(...B.map(r => parseFloat(r.budget) || 0), 1);
+  document.getElementById('budget-rows').innerHTML = B.map((r, i) => {
+    const b = parseFloat(r.budget) || 0;
+    const s = parseFloat(r.spent) || 0;
+    const fillW = pct(s, maxB);
+    const col = s > b ? '#E24B4A' : s > 0 ? '#378ADD' : '#C8C4BC';
+    return `${i > 0 ? '<hr class="divider">' : ''}
+    <div class="brow">
+      <div class="brow-label">${r.cat}</div>
+      <div class="brow-track"><div class="brow-fill" style="width:${fillW}%;background:${col}"></div></div>
+      <div class="brow-nums"><strong>${fmt(s)}</strong> <span>/ ${fmt(b)}</span></div>
+    </div>`;
+  }).join('');
+}
+
+async function connect() {
+  const url = document.getElementById('script-url').value.trim();
+  if (!url) return;
+  SCRIPT_URL = url;
+  localStorage.setItem('south_house_url', url);
+  document.getElementById('conn-status').textContent = 'Connecting...';
+  document.getElementById('conn-status').className = '';
+  try {
+    await loadAll();
+    document.getElementById('conn-status').textContent = 'Connected';
+    document.getElementById('conn-status').className = 'conn-ok';
+    document.getElementById('config-bar').style.background = '#EAF3DE';
+  } catch(e) {
+    document.getElementById('conn-status').textContent = 'Failed — check URL';
+    document.getElementById('conn-status').className = 'conn-err';
+  }
+}
+
+async function loadAll() {
+  if (!SCRIPT_URL) return;
+  document.getElementById('last-sync').innerHTML = '<span class="loading"></span>loading';
+  const params = new URLSearchParams({ action: 'getAll' });
+  const res = await fetch(SCRIPT_URL + '?' + params.toString());
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  DATA = await res.json();
+  renderSchedule();
+  renderBudget();
+  renderLookahead();
+  document.getElementById('last-sync').textContent = new Date().toLocaleTimeString();
+}
+
+// Auto-load if URL saved
+if (SCRIPT_URL) {
+  document.getElementById('script-url').value = SCRIPT_URL;
+  loadAll().then(() => {
+    document.getElementById('conn-status').textContent = 'Connected';
+    document.getElementById('conn-status').className = 'conn-ok';
+    document.getElementById('config-bar').style.background = '#EAF3DE';
+  }).catch(() => {});
+}
+
+// Lookahead date
+document.getElementById('lookahead-date').textContent = 'Week of ' +
+  new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+</script>
+</body>
+</html>
