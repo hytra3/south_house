@@ -577,11 +577,29 @@ function renderSchedule() {
   }).join('');
 }
 
+function rollupBudget(rows) {
+  // Accepts rows with either {cat, budget, spent} or {category, subcategory, budget, spent}
+  // Returns rolled-up array of {cat, budget, spent} preserving original category order
+  const order = [];
+  const map = {};
+  rows.forEach(r => {
+    const cat = (r.category || r.cat || '').trim();
+    if (!cat) return;
+    const b = parseFloat(r.budget) || 0;
+    const s = parseFloat(r.spent) || 0;
+    if (!map[cat]) { map[cat] = { cat, budget: 0, spent: 0 }; order.push(cat); }
+    map[cat].budget += b;
+    map[cat].spent += s;
+  });
+  return order.map(k => map[k]);
+}
+
 function renderBudget() {
-  const B = DATA.budget || [];
+  const raw = DATA.budget || [];
+  const B = rollupBudget(raw);
   const C = DATA.changes || [];
-  const totalB = B.reduce((a, r) => a + (parseFloat(r.budget) || 0), 0);
-  const totalS = B.reduce((a, r) => a + (parseFloat(r.spent) || 0), 0);
+  const totalB = B.reduce((a, r) => a + r.budget, 0);
+  const totalS = B.reduce((a, r) => a + r.spent, 0);
   const cc = C.reduce((a, c) => a + (parseFloat(c.cost) || 0), 0);
   const remaining = totalB - totalS;
 
@@ -592,10 +610,9 @@ function renderBudget() {
     <div class="metric"><div class="metric-label">Change orders</div><div class="metric-value ${cc > 0 ? 'warn' : 'ok'}">${cc >= 0 ? '+' : ''}${fmt(cc)}</div></div>`;
 
   if (!B.length) { document.getElementById('budget-rows').innerHTML = '<div class="empty">No budget data</div>'; return; }
-  const maxB = Math.max(...B.map(r => parseFloat(r.budget) || 0), 1);
+  const maxB = Math.max(...B.map(r => r.budget), 1);
   document.getElementById('budget-rows').innerHTML = B.map((r, i) => {
-    const b = parseFloat(r.budget) || 0;
-    const s = parseFloat(r.spent) || 0;
+    const b = r.budget, s = r.spent;
     const fillW = pct(s, maxB);
     const col = s > b ? '#E24B4A' : s > 0 ? '#378ADD' : '#C8C4BC';
     return `${i > 0 ? '<hr class="divider">' : ''}
