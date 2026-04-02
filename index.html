@@ -332,11 +332,15 @@ footer {
 <header>
   <div class="header-left">
     <h1>South House</h1>
-    <p>Build progress dashboard &mdash; v 0.11</p>
+    <p>Build progress dashboard &mdash; v 0.15</p>
   </div>
   <div class="sync-info">
     <div>Last updated <span id="last-sync">—</span></div>
-    <button class="refresh-btn" onclick="loadAll()">&#8635; Refresh</button>
+    <div style="margin-top:6px;display:flex;gap:8px;justify-content:flex-end">
+      <a href="https://drive.google.com/file/d/1FGgXYJdOrtJNwX7nxfOzGAktOPFtlHl3/view" target="_blank" style="display:inline-block;padding:5px 14px;border:1px solid rgba(245,240,232,0.2);border-radius:20px;font-size:12px;color:rgba(245,240,232,0.6);text-decoration:none;transition:all .2s" onmouseover="this.style.color='#F5F0E8';this.style.borderColor='rgba(245,240,232,0.5)'" onmouseout="this.style.color='rgba(245,240,232,0.6)';this.style.borderColor='rgba(245,240,232,0.2)'">&#128196; View plans</a>
+      <a href="https://photos.app.goo.gl/UnF1raHwciK8WfSM7" target="_blank" style="display:inline-block;padding:5px 14px;border:1px solid rgba(245,240,232,0.2);border-radius:20px;font-size:12px;color:rgba(245,240,232,0.6);text-decoration:none;transition:all .2s" onmouseover="this.style.color='#F5F0E8';this.style.borderColor='rgba(245,240,232,0.5)'" onmouseout="this.style.color='rgba(245,240,232,0.6)';this.style.borderColor='rgba(245,240,232,0.2)'">&#128247; Photos</a>
+      <button class="refresh-btn" onclick="loadAll()">&#8635; Refresh</button>
+    </div>
   </div>
 </header>
 
@@ -387,9 +391,9 @@ footer {
         <th style="width:160px">Phase</th>
         <th style="width:100px">Status</th>
         <th style="width:130px">Who's on site</th>
-        <th style="width:75px">Start</th>
-        <th style="width:75px">End</th>
-        <th>Progress (24 weeks)</th>
+        <th style="width:90px">Start</th>
+        <th style="width:90px">End</th>
+        <th>Progress</th>
       </tr></thead>
       <tbody id="gantt-body">
         <tr><td colspan="6" class="empty">—</td></tr>
@@ -417,7 +421,18 @@ footer {
 <footer>South House build tracker &mdash; view only &mdash; data from Google Sheets</footer>
 
 <script>
-const TW = 24;
+// Project timeline — derived from schedule data
+function parseDate(v) {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  const d = new Date(v);
+  return isNaN(d) ? null : d;
+}
+function fmtDate(v) {
+  const d = parseDate(v);
+  if (!d) return '—';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 const SC = { done:'#639922', active:'#378ADD', pending:'#888780', delayed:'#E24B4A', upcoming:'#C17D3C' };
 const SL = { done:'Complete', active:'In progress', pending:'Pending', delayed:'Delayed', upcoming:'Up next' };
 const SK = { done:'s-done', active:'s-active', pending:'s-pending', delayed:'s-delayed', upcoming:'s-upcoming' };
@@ -444,14 +459,15 @@ function pct(s, b) { return b === 0 ? 0 : Math.min(100, Math.round(s / b * 100))
 function pctRaw(s, b) { return b === 0 ? 0 : Math.round(s / b * 100); }
 
 function getLookaheadWeek() {
-  // Returns a synthetic "current week" based on active/delayed phases
-  // In production this would be based on project start date + today's date
+  const today = new Date();
+  // Active phases = status active, OR dates that straddle today
   const active = DATA.phases.filter(p => {
     const s = (p.status||'').toLowerCase().replace(/\s/g,'');
-    return s === 'active' || s === 'inprogress';
+    if (s === 'active' || s === 'inprogress') return true;
+    const start = parseDate(p.start), end = parseDate(p.end);
+    return start && end && today >= start && today <= end;
   });
-  if (active.length) return { week: parseFloat(active[0].start) || 1, phases: active };
-  return { week: 1, phases: [] };
+  return { phases: active };
 }
 
 function renderLookahead() {
@@ -543,13 +559,22 @@ function renderSchedule() {
     let st = rawStatus;
     if (p.name === upNextName) st = 'upcoming';
     const col = SC[st] || SC.pending;
-    const s = parseFloat(p.start) || 1;
-    const e = parseFloat(p.end) || 2;
     const pc = parseFloat(p.pct) || 0;
-    const bL = Math.round((s - 1) / TW * 100);
-    const bW = Math.max(1, Math.round((e - s) / TW * 100));
-    const bF = Math.round(bW * pc / 100);
     const isActive = activeNames.has(p.name);
+
+    // Date-based bar calculation
+    const startD = parseDate(p.start);
+    const endD = parseDate(p.end);
+    const today = new Date();
+    const allStarts = DATA.phases.map(x => parseDate(x.start)).filter(Boolean);
+    const allEnds = DATA.phases.map(x => parseDate(x.end)).filter(Boolean);
+    const projectStart = allStarts.length ? new Date(Math.min(...allStarts)) : today;
+    const projectEnd = allEnds.length ? new Date(Math.max(...allEnds)) : today;
+    const totalMs = projectEnd - projectStart || 1;
+    const bL = startD ? Math.max(0, Math.round((startD - projectStart) / totalMs * 100)) : 0;
+    const bW = (startD && endD) ? Math.max(1, Math.round((endD - startD) / totalMs * 100)) : 4;
+    const bF = Math.round(bW * pc / 100);
+    const todayPct = Math.min(100, Math.max(0, Math.round((today - projectStart) / totalMs * 100)));
 
     // Crew display
     let crewDisplay = '—';
@@ -565,12 +590,13 @@ function renderSchedule() {
       <td style="font-weight:500">${p.name}</td>
       <td><span class="badge ${SK[st] || 's-pending'}">${SL[st] || p.status}</span></td>
       <td style="font-size:12px;color:var(--ink-soft)">${crewDisplay}</td>
-      <td style="color:var(--ink-faint)">Wk ${p.start}</td>
-      <td style="color:var(--ink-faint)">Wk ${p.end}</td>
+      <td style="color:var(--ink-faint)">${fmtDate(p.start)}</td>
+      <td style="color:var(--ink-faint)">${fmtDate(p.end)}</td>
       <td style="padding:9px 14px">
-        <div class="bar-wrap">
+        <div class="bar-wrap" style="position:relative;overflow:visible">
           <div class="bar-bg" style="left:${bL}%;width:${bW}%;background:${col}"></div>
           <div class="bar-fg" style="left:${bL}%;width:${bF}%;background:${col}"></div>
+          <div style="position:absolute;left:${todayPct}%;top:-4px;height:24px;width:2px;background:var(--accent);border-radius:2px;opacity:0.8" title="Today"></div>
           <span class="bar-pct">${pc}%</span>
         </div>
       </td>
