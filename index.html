@@ -332,7 +332,7 @@ footer {
 <header>
   <div class="header-left">
     <h1>South House</h1>
-    <p>Build progress dashboard &mdash; read-only view v0.1</p>
+    <p>Build progress dashboard &mdash; v 0.11</p>
   </div>
   <div class="sync-info">
     <div>Last updated <span id="last-sync">—</span></div>
@@ -578,13 +578,13 @@ function renderSchedule() {
 }
 
 function rollupBudget(rows) {
-  // Accepts rows with either {cat, budget, spent} or {category, subcategory, budget, spent}
-  // Returns rolled-up array of {cat, budget, spent} preserving original category order
+  const SKIP = ['total', 'totals', 'grand total'];
   const order = [];
   const map = {};
   rows.forEach(r => {
     const cat = (r.category || r.cat || '').trim();
     if (!cat) return;
+    if (SKIP.includes(cat.toLowerCase())) return;
     const b = parseFloat(r.budget) || 0;
     const s = parseFloat(r.spent) || 0;
     if (!map[cat]) { map[cat] = { cat, budget: 0, spent: 0 }; order.push(cat); }
@@ -610,16 +610,28 @@ function renderBudget() {
     <div class="metric"><div class="metric-label">Change orders</div><div class="metric-value ${cc > 0 ? 'warn' : 'ok'}">${cc >= 0 ? '+' : ''}${fmt(cc)}</div></div>`;
 
   if (!B.length) { document.getElementById('budget-rows').innerHTML = '<div class="empty">No budget data</div>'; return; }
-  const maxB = Math.max(...B.map(r => r.budget), 1);
+
+  const maxVal = Math.max(...B.map(r => Math.max(r.budget, r.spent)), 1);
+
   document.getElementById('budget-rows').innerHTML = B.map((r, i) => {
     const b = r.budget, s = r.spent;
-    const fillW = pct(s, maxB);
-    const col = s > b ? '#E24B4A' : s > 0 ? '#378ADD' : '#C8C4BC';
+    const unbudgeted = b === 0 && s > 0;
+    const over = b > 0 && s > b;
+    const active = b > 0 && s > 0 && s <= b;
+    const budgetW = b > 0 ? Math.round(b / maxVal * 100) : 0;
+    const spentW = s > 0 ? Math.round(s / maxVal * 100) : 0;
+    const spentCol = over ? '#E24B4A' : unbudgeted ? '#EF9F27' : active ? '#378ADD' : '#C8C4BC';
+    const pctLabel = b > 0 ? `${pct(s, b)}%` : s > 0 ? 'unbudgeted' : '';
+    const budgetDisplay = b > 0 ? fmt(b) : 'not budgeted';
+    const unbadge = unbudgeted ? ' <span style="font-size:10px;color:#854F0B;background:#FAEEDA;padding:1px 6px;border-radius:10px;margin-left:4px">unbudgeted</span>' : '';
     return `${i > 0 ? '<hr class="divider">' : ''}
     <div class="brow">
-      <div class="brow-label">${r.cat}</div>
-      <div class="brow-track"><div class="brow-fill" style="width:${fillW}%;background:${col}"></div></div>
-      <div class="brow-nums"><strong>${fmt(s)}</strong> <span>/ ${fmt(b)}</span></div>
+      <div class="brow-label">${r.cat}${unbadge}</div>
+      <div class="brow-track" style="position:relative">
+        <div style="position:absolute;left:0;top:0;height:100%;width:${budgetW}%;background:#E8E4DC;border-radius:4px"></div>
+        <div class="brow-fill" style="width:${spentW}%;background:${spentCol}"></div>
+      </div>
+      <div class="brow-nums"><strong style="color:${over?'#A32D2D':unbudgeted?'#854F0B':'inherit'}">${fmt(s)}</strong> <span>/ ${budgetDisplay}</span> <span style="font-size:11px;color:${over?'#A32D2D':'var(--ink-faint)'}">${pctLabel}</span></div>
     </div>`;
   }).join('');
 }
