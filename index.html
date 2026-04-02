@@ -291,7 +291,7 @@ main { padding: 2rem 2.5rem; max-width: 1100px; margin: 0 auto; }
 .brow { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 .brow:last-child { margin-bottom: 0; }
 .brow-label { font-size: 13px; color: var(--ink); flex: 0 0 170px; }
-.brow-track { flex: 1; height: 7px; background: var(--gray-light); border-radius: 4px; position: relative; overflow: hidden; }
+.brow-track { flex: 1; height: 7px; background: transparent; border-radius: 4px; position: relative; overflow: visible; }
 .brow-fill { height: 100%; border-radius: 4px; position: absolute; left: 0; top: 0; }
 .brow-nums { font-size: 12px; color: var(--ink-faint); flex: 0 0 160px; text-align: right; }
 .brow-nums strong { color: var(--ink); font-weight: 500; }
@@ -441,6 +441,7 @@ let DATA = { phases: [], budget: [], changes: [] };
 
 function fmt(n) { return '$' + Math.round(n).toLocaleString(); }
 function pct(s, b) { return b === 0 ? 0 : Math.min(100, Math.round(s / b * 100)); }
+function pctRaw(s, b) { return b === 0 ? 0 : Math.round(s / b * 100); }
 
 function getLookaheadWeek() {
   // Returns a synthetic "current week" based on active/delayed phases
@@ -618,16 +619,19 @@ function renderBudget() {
     const unbudgeted = b === 0 && s > 0;
     const over = b > 0 && s > b;
     const active = b > 0 && s > 0 && s <= b;
-    const budgetW = b > 0 ? Math.round(b / maxVal * 100) : 0;
-    const spentW = s > 0 ? Math.round(s / maxVal * 100) : 0;
+    // Budget track = fixed 80% of row width; spent bar scales relative to budget
+    // This way over-budget bars visibly overflow the gray track
+    const TRACK = 80;
+    const budgetW = b > 0 ? TRACK : 0;
+    const spentW = b > 0 ? Math.min(Math.round(s / b * TRACK), 140) : (s > 0 ? 20 : 0);
     const spentCol = over ? '#E24B4A' : unbudgeted ? '#EF9F27' : active ? '#378ADD' : '#C8C4BC';
-    const pctLabel = b > 0 ? `${pct(s, b)}%` : s > 0 ? 'unbudgeted' : '';
+    const pctLabel = b > 0 ? `${pctRaw(s, b)}%` : s > 0 ? 'unbudgeted' : '';
     const budgetDisplay = b > 0 ? fmt(b) : 'not budgeted';
     const unbadge = unbudgeted ? ' <span style="font-size:10px;color:#854F0B;background:#FAEEDA;padding:1px 6px;border-radius:10px;margin-left:4px">unbudgeted</span>' : '';
     return `${i > 0 ? '<hr class="divider">' : ''}
     <div class="brow">
       <div class="brow-label">${r.cat}${unbadge}</div>
-      <div class="brow-track" style="position:relative">
+      <div class="brow-track" style="position:relative;overflow:visible">
         <div style="position:absolute;left:0;top:0;height:100%;width:${budgetW}%;background:#E8E4DC;border-radius:4px"></div>
         <div class="brow-fill" style="width:${spentW}%;background:${spentCol}"></div>
       </div>
