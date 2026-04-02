@@ -344,7 +344,7 @@ footer {
   </div>
 </header>
 
-<div class="config-bar" id="config-bar">
+<div class="config-bar" id="config-bar" style="display:none">
   <label>Script URL</label>
   <input id="script-url" placeholder="Paste your Google Apps Script web app URL..." />
   <button onclick="connect()">Connect</button>
@@ -451,7 +451,7 @@ const CREW = {
   'landscaping':   [{ name:'Landscape crew',   color:'#3B6D11' }],
 };
 
-let SCRIPT_URL = localStorage.getItem('south_house_url') || '';
+let SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0yy0o_9e5IZ-donQATWICFdlaSOFl249CxSWjoeLMqMYwhh8Fey7Vwp3roxPdgNlgGg/exec';
 let DATA = { phases: [], budget: [], changes: [] };
 
 function fmt(n) { return '$' + Math.round(n).toLocaleString(); }
@@ -697,15 +697,8 @@ async function loadAll() {
   document.getElementById('last-sync').textContent = new Date().toLocaleTimeString();
 }
 
-// Auto-load if URL saved
-if (SCRIPT_URL) {
-  document.getElementById('script-url').value = SCRIPT_URL;
-  loadAll().then(() => {
-    document.getElementById('conn-status').textContent = 'Connected';
-    document.getElementById('conn-status').className = 'conn-ok';
-    document.getElementById('config-bar').style.background = '#EAF3DE';
-  }).catch(() => {});
-}
+// Auto-load on startup
+loadAll().catch(() => {});
 
 // Lookahead date
 document.getElementById('lookahead-date').textContent = 'Week of ' +
