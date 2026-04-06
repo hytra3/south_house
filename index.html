@@ -711,19 +711,22 @@ function renderBudget() {
     // This way over-budget bars visibly overflow the gray track
     const TRACK = 80;
     const budgetW = b > 0 ? TRACK : 0;
-    const spentW = b > 0 ? Math.min(Math.round(s / b * TRACK), TRACK + 15) : (s > 0 ? 20 : 0);
+    const spentW = over ? TRACK : b > 0 ? Math.min(Math.round(s / b * TRACK), TRACK) : (s > 0 ? 20 : 0);
     const spentCol = over ? '#E24B4A' : unbudgeted ? '#EF9F27' : active ? '#378ADD' : '#C8C4BC';
-    const pctLabel = b > 0 ? `${pctRaw(s, b)}%` : s > 0 ? 'unbudgeted' : '';
+    const pctLabel = b > 0 ? pctRaw(s, b) : 0;
     const budgetDisplay = b > 0 ? fmt(b) : 'not budgeted';
     const unbadge = unbudgeted ? ' <span style="font-size:10px;color:#854F0B;background:#FAEEDA;padding:1px 6px;border-radius:10px;margin-left:4px">unbudgeted</span>' : '';
+    const overage = over ? fmt(s - b) : '';
+    const overBadge = over ? `<span style="font-size:10px;color:#791F1F;background:#F7C1C1;padding:1px 7px;border-radius:10px;margin-left:6px;font-weight:500">+${overage} over</span>` : '';
+    const pctDisplay = b > 0 ? `<span style="font-size:11px;color:${over?'#A32D2D':'var(--ink-faint)'};font-weight:${over?'500':'400'}">${pctLabel}%</span>` : '';
     return `${i > 0 ? '<hr class="divider">' : ''}
     <div class="brow">
-      <div class="brow-label">${r.cat}${unbadge}</div>
+      <div class="brow-label" style="display:flex;align-items:center;flex-wrap:wrap;gap:2px">${r.cat}${unbadge}${overBadge}</div>
       <div class="brow-track" style="position:relative;overflow:visible">
         <div style="position:absolute;left:0;top:0;height:100%;width:${budgetW}%;background:#E8E4DC;border-radius:4px"></div>
         <div class="brow-fill" style="width:${spentW}%;background:${spentCol}"></div>
       </div>
-      <div class="brow-nums"><strong style="color:${over?'#A32D2D':unbudgeted?'#854F0B':'inherit'}">${fmt(s)}</strong> <span>/ ${budgetDisplay}</span> <span style="font-size:11px;color:${over?'#A32D2D':'var(--ink-faint)'}">${pctLabel}</span></div>
+      <div class="brow-nums"><strong style="color:${over?'#A32D2D':unbudgeted?'#854F0B':'inherit'}">${fmt(s)}</strong> <span>/ ${budgetDisplay}</span> ${pctDisplay}</div>
     </div>`;
   }).join('');
 }
