@@ -412,6 +412,44 @@ footer {
     <div class="metric"><div class="metric-label">Remaining</div><div class="metric-value">—</div></div>
     <div class="metric"><div class="metric-label">Change orders</div><div class="metric-value">—</div></div>
   </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
+    <div style="background:white;border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;display:flex;align-items:center;gap:1.5rem">
+      <div style="position:relative;width:72px;height:72px;flex-shrink:0">
+        <svg viewBox="0 0 72 72" width="72" height="72">
+          <circle cx="36" cy="36" r="30" fill="none" stroke="var(--gray-light)" stroke-width="8"/>
+          <circle cx="36" cy="36" r="30" fill="none" stroke="#639922" stroke-width="8"
+            stroke-dasharray="188.5" id="sched-ring"
+            stroke-dashoffset="188.5"
+            stroke-linecap="round"
+            transform="rotate(-90 36 36)"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--ink)" id="sched-ring-label">0%</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.06em;font-weight:500;margin-bottom:4px">Schedule complete</div>
+        <div style="font-size:22px;font-weight:300;font-family:var(--serif);color:var(--ink)" id="sched-pct-label">—</div>
+        <div style="font-size:12px;color:var(--ink-faint)" id="sched-pct-sub"></div>
+      </div>
+    </div>
+    <div style="background:white;border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;display:flex;align-items:center;gap:1.5rem">
+      <div style="position:relative;width:72px;height:72px;flex-shrink:0">
+        <svg viewBox="0 0 72 72" width="72" height="72">
+          <circle cx="36" cy="36" r="30" fill="none" stroke="var(--gray-light)" stroke-width="8"/>
+          <circle cx="36" cy="36" r="30" fill="none" stroke="#378ADD" stroke-width="8"
+            stroke-dasharray="188.5" id="budget-ring"
+            stroke-dashoffset="188.5"
+            stroke-linecap="round"
+            transform="rotate(-90 36 36)"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--ink)" id="budget-ring-label">0%</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.06em;font-weight:500;margin-bottom:4px">Budget used</div>
+        <div style="font-size:22px;font-weight:300;font-family:var(--serif);color:var(--ink)" id="budget-pct-label">—</div>
+        <div style="font-size:12px;color:var(--ink-faint)" id="budget-pct-sub"></div>
+      </div>
+    </div>
+  </div>
   <div class="budget-card" id="budget-rows">
     <div class="empty">—</div>
   </div>
@@ -545,6 +583,17 @@ function renderSchedule() {
   const delayed = P.filter(p => (p.status||'').toLowerCase() === 'delayed').length;
   const inprog = P.filter(p => ['active','in progress'].includes((p.status||'').toLowerCase())).length;
 
+  // Schedule ring
+  const CIRC = 188.5;
+  const schedPct = P.length > 0 ? Math.round(done / P.length * 100) : 0;
+  const schedRingEl = document.getElementById('sched-ring');
+  if (schedRingEl) {
+    schedRingEl.setAttribute('stroke-dashoffset', Math.round(CIRC - (CIRC * schedPct / 100)));
+    document.getElementById('sched-ring-label').textContent = schedPct + '%';
+    document.getElementById('sched-pct-label').textContent = done + ' of ' + P.length + ' phases';
+    document.getElementById('sched-pct-sub').textContent = inprog + ' in progress' + (delayed > 0 ? ', ' + delayed + ' delayed' : '');
+  }
+
   document.getElementById('sched-metrics').innerHTML = `
     <div class="metric"><div class="metric-label">Phases</div><div class="metric-value">${P.length}</div></div>
     <div class="metric"><div class="metric-label">Complete</div><div class="metric-value ok">${done}</div></div>
@@ -636,6 +685,19 @@ function renderBudget() {
     <div class="metric"><div class="metric-label">Remaining</div><div class="metric-value">${fmt(remaining)}</div></div>
     <div class="metric"><div class="metric-label">Change orders</div><div class="metric-value ${cc > 0 ? 'warn' : 'ok'}">${cc >= 0 ? '+' : ''}${fmt(cc)}</div></div>`;
 
+  // Drive the summary rings
+  const CIRC = 188.5;
+  const budgetPct = totalB > 0 ? Math.min(100, Math.round(totalS / totalB * 100)) : 0;
+  const budgetRingEl = document.getElementById('budget-ring');
+  if (budgetRingEl) {
+    const col = totalS > totalB ? '#E24B4A' : totalS / totalB > 0.8 ? '#EF9F27' : '#378ADD';
+    budgetRingEl.style.stroke = col;
+    budgetRingEl.setAttribute('stroke-dashoffset', Math.round(CIRC - (CIRC * budgetPct / 100)));
+    document.getElementById('budget-ring-label').textContent = budgetPct + '%';
+    document.getElementById('budget-pct-label').textContent = fmt(totalS) + ' spent';
+    document.getElementById('budget-pct-sub').textContent = fmt(remaining) + ' remaining';
+  }
+
   if (!B.length) { document.getElementById('budget-rows').innerHTML = '<div class="empty">No budget data</div>'; return; }
 
   const maxVal = Math.max(...B.map(r => Math.max(r.budget, r.spent)), 1);
@@ -649,7 +711,7 @@ function renderBudget() {
     // This way over-budget bars visibly overflow the gray track
     const TRACK = 80;
     const budgetW = b > 0 ? TRACK : 0;
-    const spentW = b > 0 ? Math.min(Math.round(s / b * TRACK), 140) : (s > 0 ? 20 : 0);
+    const spentW = b > 0 ? Math.min(Math.round(s / b * TRACK), TRACK + 15) : (s > 0 ? 20 : 0);
     const spentCol = over ? '#E24B4A' : unbudgeted ? '#EF9F27' : active ? '#378ADD' : '#C8C4BC';
     const pctLabel = b > 0 ? `${pctRaw(s, b)}%` : s > 0 ? 'unbudgeted' : '';
     const budgetDisplay = b > 0 ? fmt(b) : 'not budgeted';
